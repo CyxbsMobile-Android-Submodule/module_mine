@@ -1,6 +1,8 @@
 package com.mredrock.cyxbs.mine.page.edit
 
 import androidx.lifecycle.MutableLiveData
+import com.mredrock.cyxbs.common.service.account.IAccountService
+import com.mredrock.cyxbs.common.service.ServiceManager
 import com.mredrock.cyxbs.common.utils.LogUtils
 import com.mredrock.cyxbs.common.utils.extensions.mapOrThrowApiException
 import com.mredrock.cyxbs.common.utils.extensions.safeSubscribeBy
@@ -27,10 +29,11 @@ class EditViewModel : BaseViewModel() {
                 .normalStatus(this)
                 .safeSubscribeBy(
                         onNext = {
-                            user!!.nickname = nickname
-                            user!!.introduction = introduction
-                            user!!.qq = qq
-                            user!!.phone = phone
+                            val userEditor = ServiceManager.getService(IAccountService::class.java).getUserEditorService()
+                            userEditor.setNickname(nickname)
+                            userEditor.setIntroduction(introduction)
+                            userEditor.setQQ(qq)
+                            userEditor.setPhone(phone)
                             updateInfoEvent.postValue(true)
                         },
                         onError = {
@@ -46,8 +49,9 @@ class EditViewModel : BaseViewModel() {
                 .mapOrThrowApiException()
                 .flatMap {
                     LogUtils.d("ImageUpdateResult", it.toString())
-                    user!!.photoSrc = it.photosrc
-                    user!!.photoThumbnailSrc = it.thumbnail_src
+                    ServiceManager.getService(IAccountService::class.java)
+                            .getUserEditorService()
+                            .setAvatarImgUrl(it.thumbnail_src)
                     apiService.updateUserImage(user!!.stuNum!!, user!!.idNum!!
                             , it.thumbnail_src, it.photosrc)
                 }

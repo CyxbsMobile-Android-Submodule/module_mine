@@ -19,6 +19,8 @@ import com.mredrock.cyxbs.common.BaseApp
 import com.mredrock.cyxbs.common.config.*
 import com.mredrock.cyxbs.common.event.LoginStateChangeEvent
 import com.mredrock.cyxbs.common.event.ShowModeChangeEvent
+import com.mredrock.cyxbs.common.service.account.IAccountService
+import com.mredrock.cyxbs.common.service.ServiceManager
 import com.mredrock.cyxbs.common.ui.BaseActivity
 import com.mredrock.cyxbs.common.utils.extensions.defaultSharedPreferences
 import com.mredrock.cyxbs.common.utils.extensions.doPermissionAction
@@ -73,9 +75,10 @@ class SettingActivity(override val isFragmentActivity: Boolean = false) : BaseAc
                     .positiveText("退出")
                     .negativeText("取消")
                     .onPositive { _, _ ->
-                        finish()
                         cleanAppWidgetCache()
                         EventBus.getDefault().post(LoginStateChangeEvent(false))
+                        ServiceManager.getService(IAccountService::class.java).getVerifyService().logout(this)
+                        finish()
                     }
                     .show()
         }
