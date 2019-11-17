@@ -5,15 +5,14 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.Observer
 import com.alibaba.android.arouter.facade.annotation.Route
-import com.mredrock.cyxbs.common.BaseApp
-import com.mredrock.cyxbs.common.bean.User
 import com.mredrock.cyxbs.common.config.MINE_ENTRY
 import com.mredrock.cyxbs.common.event.AskLoginEvent
 import com.mredrock.cyxbs.common.event.LoginStateChangeEvent
-import com.mredrock.cyxbs.common.ui.BaseViewModelFragment
-import com.mredrock.cyxbs.common.utils.extensions.loadAvatar
+import com.mredrock.cyxbs.common.service.account.IAccountService
+import com.mredrock.cyxbs.common.service.ServiceManager
+import com.mredrock.cyxbs.common.ui.BaseFragment
+import com.mredrock.cyxbs.common.utils.extensions.setAvatarImageFromUrl
 import com.mredrock.cyxbs.mine.page.aboutme.AboutMeActivity
 import com.mredrock.cyxbs.mine.page.ask.AskActivity
 import com.mredrock.cyxbs.mine.page.draft.DraftActivity
@@ -22,7 +21,6 @@ import com.mredrock.cyxbs.mine.page.help.HelpActivity
 import com.mredrock.cyxbs.mine.page.setting.SettingActivity
 import com.mredrock.cyxbs.mine.page.sign.DailySignActivity
 import com.mredrock.cyxbs.mine.page.store.StoreActivity
-import com.mredrock.cyxbs.mine.util.user
 import kotlinx.android.synthetic.main.mine_fragment_main.*
 import org.greenrobot.eventbus.EventBus
 import org.jetbrains.anko.support.v4.startActivity
@@ -32,24 +30,11 @@ import org.jetbrains.anko.support.v4.startActivity
  * 我的 主界面Fragment
  */
 @Route(path = MINE_ENTRY)
-class UserFragment : BaseViewModelFragment<UserViewModel>() {
-    override val viewModelClass: Class<UserViewModel>
-        get() = UserViewModel::class.java
-    private val loginListener = View.OnClickListener {
-        if (user == null) {
-            EventBus.getDefault().post(AskLoginEvent("请先登陆哦~"))
-        } else {
-            startActivity<EditInfoActivity>()
-        }
-    }
+class UserFragment : BaseFragment(), View.OnClickListener {
+    private val accountService = ServiceManager.getService(IAccountService::class.java)
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-
-        addObserver()
-
-        //加载资料
-        getPersonInfoData()
 
         //功能按钮
         mine_main_dailySign.setOnClickListener { checkLoginBeforeAction("签到") { startActivity<DailySignActivity>() } }
@@ -60,46 +45,21 @@ class UserFragment : BaseViewModelFragment<UserViewModel>() {
         mine_main_relateMe.setOnClickListener { checkLoginBeforeAction("与我相关") { startActivity<AboutMeActivity>() } }
         mine_main_setting.setOnClickListener { startActivity<SettingActivity>() }
 
-        setUserInfoClickListener(loginListener)
+        mine_main_avatar.setOnClickListener(this)
+        mine_main_username.setOnClickListener(this)
+        mine_main_introduce.setOnClickListener(this)
     }
 
-    private fun addObserver() {
-        viewModel.mUser.observe(this, Observer {
-            if (it == null) {
-                BaseApp.user = null
-                return@Observer
-            }
-            freshBaseUser(it)
-            refreshEditLayout()
-        })
-    }
-
-    /**
-     * 更新数据，加载详细资料，加载完后进入编辑页面
-     */
-    private fun loadInfoAndGoEdit() {
-        checkLoginBeforeAction("个人资料") { viewModel.getUserInfo() }
-    }
-
-    private fun freshBaseUser(user: User) {
-        val finalUser = BaseApp.user!!
-        finalUser.nickname = user.nickname
-        finalUser.introduction = user.introduction
-        finalUser.qq = user.qq
-        finalUser.phone = user.phone
-        finalUser.photoSrc = user.photoSrc
-        finalUser.photoThumbnailSrc = user.photoThumbnailSrc
-        BaseApp.user = finalUser
-    }
-
-    private fun setUserInfoClickListener(onClickListener: View.OnClickListener) {
-        mine_main_avatar.setOnClickListener(onClickListener)
-        mine_main_username.setOnClickListener(onClickListener)
-        mine_main_introduce.setOnClickListener(onClickListener)
+    override fun onClick(v: View?) {
+        if (!accountService.getVerifyService().isLogin()) {
+            EventBus.getDefault().post(AskLoginEvent("请先登陆哦~"))
+        } else {
+            startActivity<EditInfoActivity>()
+        }
     }
 
     private fun checkLoginBeforeAction(msg: String, action: () -> Unit) {
-        if (BaseApp.isLogin) {
+        if (accountService.getVerifyService().isLogin()) {
             action.invoke()
         } else {
             EventBus.getDefault().post(AskLoginEvent("请先登陆才能查看${msg}哦~"))
@@ -109,18 +69,6 @@ class UserFragment : BaseViewModelFragment<UserViewModel>() {
     override fun onResume() {
         super.onResume()
         refreshEditLayout()
-    }
-
-    private fun getPersonInfoData() {
-        if (!BaseApp.isLogin) {
-            mine_main_username.setText(R.string.mine_user_empty_username)
-            mine_main_avatar.setImageResource(R.drawable.mine_default_avatar)
-            mine_main_introduce.setText(R.string.mine_user_empty_introduce)
-            clearAllRemind()
-            return
-        } else {
-            loadInfoAndGoEdit()
-        }
     }
 
     private fun clearAllRemind() {
@@ -133,22 +81,21 @@ class UserFragment : BaseViewModelFragment<UserViewModel>() {
 
 
     private fun refreshEditLayout() {
-        if (BaseApp.isLogin) {
-            context?.loadAvatar(user!!.photoThumbnailSrc, mine_main_avatar)
-            mine_main_username.text = if (user!!.nickname.isNullOrBlank()) getString(R.string.mine_user_empty_username) else user!!.nickname
-            mine_main_introduce.text = if (user!!.introduction.isNullOrBlank()) getString(R.string.mine_user_empty_introduce) else user!!.introduction
+        fun String.orDefault(default: String) = takeIf { isNotEmpty() } ?: default
+
+        mine_main_username.text = accountService.getUserService().getNickname().orDefault(getString(R.string.mine_user_empty_username))
+        mine_main_introduce.text = accountService.getUserService().getIntroduction().orDefault(getString(R.string.mine_user_empty_introduce))
+
+        if (accountService.getVerifyService().isLogin()) {
+            mine_main_avatar.setAvatarImageFromUrl(accountService.getUserService().getAvatarImgUrl())
         } else {
-            mine_main_username.setText(R.string.mine_user_empty_username)
             mine_main_avatar.setImageResource(R.drawable.mine_default_avatar)
-            mine_main_introduce.setText(R.string.mine_user_empty_introduce)
+            clearAllRemind()
         }
     }
 
     override fun onLoginStateChangeEvent(event: LoginStateChangeEvent) {
         super.onLoginStateChangeEvent(event)
-        if (!event.newState) {
-            viewModel.mUser.value = null
-        }
         refreshEditLayout()
     }
 

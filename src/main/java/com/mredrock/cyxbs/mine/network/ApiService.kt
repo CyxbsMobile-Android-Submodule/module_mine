@@ -2,7 +2,6 @@ package com.mredrock.cyxbs.mine.network
 
 import com.mredrock.cyxbs.common.bean.RedrockApiStatus
 import com.mredrock.cyxbs.common.bean.RedrockApiWrapper
-import com.mredrock.cyxbs.common.bean.User
 import com.mredrock.cyxbs.mine.network.model.*
 import io.reactivex.Observable
 import okhttp3.MultipartBody
@@ -13,14 +12,6 @@ import retrofit2.http.*
  * Created by zia on 2018/8/15.
  */
 interface ApiService {
-
-    /**
-     * 获取个人详细资料
-     */
-    @FormUrlEncoded
-    @POST("/app/index.php/Home/Person/search")
-    fun getPersonInfo(@Field("stuNum") stuNum: String, @Field("idNum") idNum: String): Observable<RedrockApiWrapper<User>>
-
     /**
      * 上传头像
      */
