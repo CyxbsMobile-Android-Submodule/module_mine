@@ -1,91 +1,90 @@
-<resources>
-    <string name="mine_mine">module_mine</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <string name="mine_my_page">我 的</string>
     <string name="mine_user_empty_username">请填写用户名</string>
     <string name="mine_user_empty_introduce">写下你对世界想说的话，就现在</string>
-    <string name="mine_setting_show_note">在课表上没课的地方显示备忘内容</string>
-    <string name="mine_setting_feedback">意见反馈</string>
-    <string name="mine_setting_about">关于</string>
-    <string name="mine_setting_exit">退出当前账号</string>
-    <string name="mine_setting_share">分享</string>
     <string name="mine_to_download">扫一扫下载，长按保存</string>
-    <string name="mine_money_tell">悄悄告诉你：积分可以兑换礼物~</string>
-    <string name="mine_gift_ontheway">礼物正在路上呢~</string>
 
+    <!--    首页-->
+    <string name="mine_sign_name">签到</string>
+    <string name="mine_sing_successive_default">已连续签到--天</string>
+    <string name="mine_question">提问</string>
+    <string name="mine_answer">回答</string>
+    <string name="mine_reply_to_comment">评论</string>
+    <string name="mine_praise">获赞</string>
+    <string name="mine_number_default">--</string>
+    <string name="mine_show_schedule_first_launch">启动APP时最先显示课表页面</string>
+    <string name="mine_custom_icon">自定义桌面小图标</string>
+    <string name="mine_feedback_suggestion">意见与反馈</string>
+    <string name="mine_about_redrock">红岩网校</string>
+    <string name="mine_about">关于掌邮</string>
+    <string name="mine_exit">退出登录</string>
+    <string name="mine_login_now">马上登录</string>
+    <string name="mine_logout_title">退出登录</string>
+    <string name="mine_logout_content">是否退出当前账号？</string>
 
-    <string name="mine_sign_remind_switch_hint">连续签到每日提醒</string>
-    <string name="mine_sign_point_hint">我的积分数：</string>
-    <string name="mine_sign_point_detail">积分明细</string>
-    <string name="mine_sign_day_hint">已连续签到</string>
-    <string name="mine_sign_point_count_default">0</string>
-    <string name="mine_sign_day_count_default">00</string>
-    <string name="mine_sign_day_count_hint">天</string>
-    <string name="mine_sign_to_sign">立即签到</string>
-    <string name="mine_sign_hint_signed">今天打卡任务已完成，你还要忙着可爱</string>
-    <string name="mine_sign_rules">签到规则</string>
-    <string name="mine_sign_point_spec">积分说明</string>
-    <string name="mine_sign_rules_rules">
-        1.每天完成一次签到可获得积分奖励；\n
-        2.连续签到在3天、5天、7天可获得积分加成；\n
-        3.连续签到中断，将从第一天重新开始；\n
-        4.积分计分周期为7天；\n
-        5.连续签到奖励如下：\n
-        第1天 —— +10\n
-        第2天 —— +10\n
-        第3天 —— +20\n
-        第4天 —— +10\n
-        第5天 —— +30\n
-        第6天 —— +10\n
-        第7天 —— +40
-    </string>
-    <string name="mine_sign_detail_more">更多</string>
-    <string name="mine_question_detail_report">举报</string>
-    <string name="mine_question_detail_share">分享</string>
+    <!--    编辑-->
+    <string name="mine_nickname">昵称</string>
+    <string name="mine_nickname_default">输入您的昵称</string>
+    <string name="mine_introduce">个性签名</string>
+    <string name="mine_introduce_default">输入个性签名</string>
+    <string name="mine_qq">QQ</string>
+    <string name="mine_phone">电话</string>
+    <string name="mine_college">学院</string>
+    <string name="mine_info_default">完善你的个人信息哦</string>
+    <string name="mine_info_save">已保存</string>
+    <string name="mine_info_contact">写下您的联系方式，便于我们与您联系</string>
+    <string name="mine_exit_edit">退出编辑</string>
+    <string name="mine_exit_edit_quest">你的资料还未保存，是否退出？</string>
+    <!--    签到-->
+    <string name="mine_sign_to_sign">签到</string>
+    <string name="mine_sign_mon">周一</string>
+    <string name="mine_sign_tue">周二</string>
+    <string name="mine_sign_wed">周三</string>
+    <string name="mine_sign_thurs">周四</string>
+    <string name="mine_sign_fri">周五</string>
+    <string name="mine_sign_sat">周六</string>
+    <string name="mine_sign_sun">周日</string>
+    <string name="mine_sign_year_default">2019-2020</string>
+    <string name="mine_sign_week_default">上学期第--周</string>
+    <string name="mine_sign_serialDays_default">已连续打卡--天</string>
+    <string name="mine_sign_ranking_default">还没有打卡哦</string>
+    <string name="mine_sign_ranking_percentage_default">超过--%的邮子</string>
+    <string name="mine_sign_week_integral">10积分</string>
+    <string name="mine_sign_store_integral_default">--</string>
+    <string name="mine_sign_store_title">积分商城</string>
+    <string name="mine_sign_store_my_product">我的商品</string>
+    <string name="mine_sign_store_item_name_default">redrock限量手环</string>
+    <string name="mine_sign_store_item_count_default">仅剩555件</string>
+    <string name="mine_sign_store_item_integral_default">13</string>
+    <string name="mine_sign_store_item_exchange">兑换</string>
+    <string name="mine_sign_store_item_exchange_for_sure">商品兑换</string>
 
-    <string name="mine_point_spec_spec">
-        Q：积分有什么用途？\n
-        A：积分可用于兑换奖品及参与各类活动。\n\n
-        Q：怎样获得积分？\n
-        A：目前获得积分主要有三种途径：\n
-        1.每天登录掌上重邮并签到；\n
-        2.发布优质“帮助”帖；\n
-        3.官方活动发放。
-    </string>
-    <string name="mine_copyright_hint">以上信息的最终解释权归红岩网校工作站所有</string>
+    <string name="mine_my_product_time_pre">兑换时间：</string>
+    <string name="mine_my_product">商品领取</string>
+    <string name="mine_my_product_unclaimed">如果是实体商品，请携带有效证件前往红岩网校工作站B区领取奖品</string>
+    <string name="mine_my_product_claimed">商品已经领了哟，继续攒积分兑换更多奖品吧</string>
 
 
     <!--草稿箱-->
-    <string name="mine_answer_detail_submit">发送</string>
-    <string name="mine_answer_detail_content_hint">添加你的评论</string>
-    <string name="mine_draft_empty_hint">还没有草稿在这里哦～</string>
+    <string name="mine_draft_delete_success">删除成功</string>
+    <string name="mine_draft_delete_failed">删除失败</string>
 
-    <string name="mine_question_default">提问：线性第一题不会做，求解</string>
-    <string name="mine_question_help_default">帮助：是的，公式是没有问题的，但是你的…</string>
-    <string name="mine_adopt_time_justnow">采纳时间：刚刚</string>
-    <string name="mine_avatar">头像</string>
-    <string name="mine_nickname">昵称</string>
-    <string name="mine_introduce">简介</string>
-    <string name="mine_qq">QQ</string>
-    <string name="mine_phone">电话</string>
-    <string name="mine_edit">编辑</string>
 
-    <!--与我相关-->
-    <string name="mine_relate_me_empty_hint">还没有与我相关的动态哦</string>
-    <string name="mine_relate_me_type_suffix">了我</string>
-    <string name="mine_relate_me_reply">回复</string>
-    <string name="mine_set_widget">自定义桌面小图标</string>
-    <string name="mine_mine_1">我的</string>
+    <!--    评论-->
+    <string name="mine_comment_at_start">你评论了 </string>
+    <string name="mine_comment_at_end"> 的回答</string>
+    <string name="mine_comment_received_at_end"> 评论了你的回答</string>
 
-    <!--积分详情-->
-    <string name="mine_point_detail_footer">已 经 到 底 了</string>
-    <string name="mine_point_detail_header_hint">当前的积分数：</string>
 
     <!--关于-->
-    <string name="mine_about_website">官网</string>
-    <string name="mine_about_legal">使用条款</string>
-    <string name="mine_about_update">更新</string>
-    <string name="mine_about_1">红岩网校产品</string>
-    <string name="mine_about_copyright">CopyRight@2013&#8211;2019 All Rights Reserved</string>
+    <string name="mine_about_sharing">分享</string>
+    <string name="mine_about_function_intro">功能介绍</string>
+    <string name="mine_about_website">产品官网</string>
+    <string name="mine_about_legal">《掌上重邮用户使用条款》</string>
+    <string name="mine_about_update">版本更新</string>
+    <string name="mine_about_1">红岩网校工作站出品</string>
+    <string name="mine_about_copyright">CopyRight © 2015&#8211;2020 All Rights Reserved</string>
+    <string name="mine_sign_store_back">store back</string>
+
 
 </resources>

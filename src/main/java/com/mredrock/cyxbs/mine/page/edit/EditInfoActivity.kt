@@ -1,32 +1,47 @@
 package com.mredrock.cyxbs.mine.page.edit
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.list.listItems
+import com.mredrock.cyxbs.common.component.CommonDialogFragment
 import com.mredrock.cyxbs.common.config.DIR_PHOTO
+import com.mredrock.cyxbs.common.service.ServiceManager
+import com.mredrock.cyxbs.common.service.account.IAccountService
+import com.mredrock.cyxbs.common.service.account.IUserService
 import com.mredrock.cyxbs.common.ui.BaseViewModelActivity
-import com.mredrock.cyxbs.common.utils.extensions.doPermissionAction
-import com.mredrock.cyxbs.common.utils.extensions.getRequestBody
-import com.mredrock.cyxbs.common.utils.extensions.loadAvatar
-import com.mredrock.cyxbs.common.utils.extensions.uri
+import com.mredrock.cyxbs.common.utils.extensions.*
 import com.mredrock.cyxbs.mine.R
-import com.mredrock.cyxbs.mine.util.setAutoGravity
-import com.mredrock.cyxbs.mine.util.user
+import com.mredrock.cyxbs.mine.util.ui.DynamicRVAdapter
 import com.yalantis.ucrop.UCrop
 import kotlinx.android.synthetic.main.mine_activity_edit_info.*
-import okhttp3.MediaType
+import kotlinx.android.synthetic.main.mine_layout_dialog_recyclerview_dynamic.view.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import org.jetbrains.anko.toast
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.IOException
 
@@ -39,70 +54,158 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
                        override val viewModelClass: Class<EditViewModel> = EditViewModel::class.java)
     : BaseViewModelActivity<EditViewModel>() {
 
-    private val editTextList by lazy { arrayOf(mine_edit_nickname, mine_edit_introduce, mine_edit_phone, mine_edit_qq) }
-
     private val SELECT_PICTURE = 1
     private val SELECT_CAMERA = 2
-    private var isEdit = true //toolbar的字是否是编辑
-    private var currentEditText: EditText? = null//当前编辑的edtText
+
+
+    private val userService: IUserService by lazy {
+        ServiceManager.getService(IAccountService::class.java).getUserService()
+    }
+
+    private val watcher = object : TextWatcher {
+        override fun afterTextChanged(s: Editable?) {
+        }
+
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+        }
+
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            checkColorAndText()
+        }
+
+    }
+
+    /**
+     * 当因用户输入导致文字有变化时，变更button和相应的颜色
+     */
+    @SuppressLint("SetTextI18n")
+    private fun checkColorAndText() {
+        val userForTemporal = ServiceManager.getService(IAccountService::class.java).getUserService()
+        if (checkIfInfoChange()) {
+            mine_btn_info_save.apply {
+                setTextColor(ContextCompat.getColor(context, R.color.common_white_font_color))
+                background = ResourcesCompat.getDrawable(resources, R.drawable.common_dialog_btn_positive_blue, null)
+                text = "保存"
+                isClickable = true
+            }
+        } else {
+            mine_btn_info_save.apply {
+                setTextColor(ContextCompat.getColor(context, R.color.common_grey_button_text))
+                background = ResourcesCompat.getDrawable(resources, R.drawable.mine_bg_round_corner_grey, null)
+                text = "已保存"
+                isClickable = false
+            }
+        }
+        val nickname = mine_et_nickname.text.toString()
+        val introduction = mine_et_introduce.text.toString()
+        val qq = mine_et_qq.text.toString()
+        val phone = mine_et_phone.text.toString()
+        mine_tv_nickname.text = "昵称(${nickname.length}/8)"
+        mine_tv_sign.text = "个性签名(${introduction.length}/20)"
+        if (nickname != userForTemporal.getNickname()) {
+            mine_et_nickname.setTextColor(ContextCompat.getColor(this, R.color.common_level_two_font_color))
+        } else {
+            mine_et_nickname.setTextColor(ContextCompat.getColor(this, R.color.common_grey_text))
+        }
+        if (introduction != userForTemporal.getIntroduction()) {
+            mine_et_introduce.setTextColor(ContextCompat.getColor(this, R.color.common_level_two_font_color))
+        } else {
+            mine_et_introduce.setTextColor(ContextCompat.getColor(this, R.color.common_grey_text))
+        }
+        if (qq != userForTemporal.getQQ()) {
+            mine_et_qq.setTextColor(ContextCompat.getColor(this, R.color.common_level_two_font_color))
+        } else {
+            mine_et_qq.setTextColor(ContextCompat.getColor(this, R.color.common_grey_text))
+        }
+        if (phone != userForTemporal.getPhone()) {
+            mine_et_phone.setTextColor(ContextCompat.getColor(this, R.color.common_level_two_font_color))
+        } else {
+            mine_et_phone.setTextColor(ContextCompat.getColor(this, R.color.common_grey_text))
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.mine_activity_edit_info)
 
-        mine_edit_toolbar.init("修改信息")
+        common_toolbar.apply {
+            setBackgroundColor(ContextCompat.getColor(this@EditInfoActivity, R.color.common_window_background))
+            initWithSplitLine("资料编辑",
+                    false,
+                    R.drawable.mine_ic_arrow_left,
+                    View.OnClickListener {
+                        if (checkIfInfoChange()) {
+                            showExit()
+                        } else {
+                            finishAfterTransition()
+                        }
+                    })
+            setTitleLocationAtLeft(true)
+        }
+
 
         initObserver()
 
-        loadAvatar(user?.photoThumbnailSrc, mine_edit_avatarImageView)
-        initData()
+        initViewAndData()
 
-        //点击更换头像
-        mine_edit_avatar.setOnClickListener { changeAvatar() }
-
-        //点击编辑/保存
-        mine_edit_toolbarEdit.setOnClickListener {
-            currentEditText?.background = null
-            if (isEdit) {
-                //点击编辑按钮
-                enableEdit()
-                isEdit = !isEdit
-            } else {
-                //点击保存按钮
-                saveInfo()
-            }
-        }
-
-        mine_edit_introduce.setAutoGravity()
+        setTextChangeListener()
     }
 
-    private fun initData() {
-        mine_edit_nickname.setText(user!!.nickname)
-        mine_edit_introduce.setText(user!!.introduction)
-        mine_edit_qq.setText(user!!.qq)
-        mine_edit_phone.setText(user!!.phone)
+    override fun onBackPressed() {
+        if (checkIfInfoChange()) {
+            showExit()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    private fun initViewAndData() {
+        refreshUserInfo()
+
+        //点击更换头像
+        mine_edit_et_avatar.setOnClickListener { changeAvatar() }
+        //需调用一次给textView赋值
+        checkColorAndText()
+        mine_btn_info_save.setOnClickListener {
+            saveInfo()
+        }
+        mine_btn_info_save.isClickable = false
+
+        mine_edit_iv_agreement.setOnClickListener {
+            showAgree()
+        }
+    }
+
+    private fun refreshUserInfo() {
+        loadAvatar(userService.getAvatarImgUrl(), mine_edit_et_avatar)
+        mine_et_nickname.setText(userService.getNickname())
+        mine_et_introduce.setText(userService.getIntroduction())
+        mine_et_qq.setText(userService.getQQ())
+        mine_et_phone.setText(userService.getPhone())
+        mine_tv_college_concrete.text = userService.getCollege()
+    }
+
+    private fun setTextChangeListener() {
+        mine_et_nickname.addTextChangedListener(watcher)
+        mine_et_introduce.addTextChangedListener(watcher)
+        mine_et_qq.addTextChangedListener(watcher)
+        mine_et_phone.addTextChangedListener(watcher)
     }
 
     private fun initObserver() {
         viewModel.updateInfoEvent.observe(this, Observer {
-            it!!
             if (it) {
                 toast("更改资料成功")
-                disableEdit()
-                isEdit = !isEdit
-                mine_edit_toolbarEdit.isClickable = true
+                checkColorAndText()
             } else {
                 toast("上传资料失败")
-                disableEdit()
-                isEdit = !isEdit
-                mine_edit_toolbarEdit.isClickable = true
             }
         })
 
         viewModel.upLoadImageEvent.observe(this, Observer {
-            it!!
             if (it) {
-                loadAvatar(user!!.photoThumbnailSrc, mine_edit_avatarImageView)
+                loadAvatar(ServiceManager.getService(IAccountService::class.java).getUserService().getAvatarImgUrl(), mine_edit_et_avatar)
                 toast("修改头像成功")
             } else {
                 toast("修改头像失败")
@@ -111,52 +214,72 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
     }
 
     private fun saveInfo() {
-        val nickname = mine_edit_nickname.text.toString()
-        val introduction = mine_edit_introduce.text.toString()
-        val qq = mine_edit_qq.text.toString()
-        val phone = mine_edit_phone.text.toString()
+        val nickname = mine_et_nickname.text.toString()
+        val introduction = mine_et_introduce.text.toString()
+        val qq = mine_et_qq.text.toString()
+        val phone = mine_et_phone.text.toString()
 
         //数据没有改变，不进行网络请求
-        if (nickname == user!!.nickname &&
-                introduction == user!!.introduction &&
-                qq == user!!.qq &&
-                phone == user!!.phone) {
-            disableEdit()
-            isEdit = !isEdit
+        if (!checkIfInfoChange()) {
             return
         }
 
-        if (nickname.isEmpty()) {
-            toast("昵称不能为空")
+        if (nickname.isEmpty() || introduction.isEmpty() || qq.isEmpty() || phone.isEmpty()) {
+            toast("信息不能为空")
             return
         }
-
-        mine_edit_toolbarEdit.isClickable = false
-
         viewModel.updateUserInfo(nickname, introduction, qq, phone)
     }
 
-    private fun enableEdit() {
-        editTextList.forEach {
-            it.isFocusable = true
-            it.isFocusableInTouchMode = true
-            it.setOnFocusChangeListener { _, _ ->
-                it.setBackgroundResource(R.drawable.mine_bg_edit)
-                currentEditText?.background = null
-                currentEditText = it
-            }
+    private fun checkIfInfoChange(): Boolean {
+        val nickname = mine_et_nickname.text.toString()
+        val introduction = mine_et_introduce.text.toString()
+        val qq = mine_et_qq.text.toString()
+        val phone = mine_et_phone.text.toString()
+
+
+        if (nickname == userService.getNickname() &&
+                introduction == userService.getIntroduction() &&
+                qq == userService.getQQ() &&
+                phone == userService.getPhone()) {
+            return false
         }
-        editTextList[0].requestFocus()
-        mine_edit_toolbarEdit.text = "保存"
+        return true
     }
 
-    private fun disableEdit() {
-        editTextList.forEach {
-            it.isFocusable = false
-            it.isFocusableInTouchMode = false
-            it.setOnClickListener(null)
+    //主要做清除焦点的处理
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.action == MotionEvent.ACTION_UP) {
+            val v = currentFocus
+
+            //如果不是落在EditText区域，则需要关闭输入法
+            if (hideKeyboard(v, ev)) {
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(v?.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+                v?.clearFocus()
+            }
         }
-        mine_edit_toolbarEdit.text = "编辑"
+        return super.dispatchTouchEvent(ev)
+    }
+
+    // 根据EditText所在坐标和用户点击的坐标相对比，来判断是否隐藏键盘
+    private fun hideKeyboard(view: View?, event: MotionEvent): Boolean {
+        if (view != null && view is EditText) {
+
+            val location = intArrayOf(0, 0)
+            view.getLocationInWindow(location)
+
+            //获取现在拥有焦点的控件view的位置，即EditText
+            val left = location[0]
+            val top = location[1]
+            val bottom = top + view.height
+            val right = left + view.width
+            //判断我们手指点击的区域是否落在EditText上面，如果不是，则返回true，否则返回false
+            val isInEt = (event.x > left && event.x < right && event.y > top
+                    && event.y < bottom)
+            return !isInEt
+        }
+        return false
     }
 
     /*下面是上传头像部分的代码*/
@@ -173,16 +296,17 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
                     parent.mkdirs()
                 }
                 //选择
-                MaterialDialog.Builder(this@EditInfoActivity)
-                        .items("拍照", "从相册中选择")
-                        .itemsCallback { _, _, which, _ ->
-                            if (which == 0) {
-                                getImageFromCamera()
-                            } else {
-                                getImageFromAlbum()
-                            }
+                MaterialDialog(this@EditInfoActivity).show {
+                    listItems(items = listOf("拍照", "从相册中选择")) { dialog, index, text ->
+                        if (index == 0) {
+                            getImageFromCamera()
+                        } else {
+                            getImageFromAlbum()
                         }
-                        .show()
+                    }
+                    cornerRadius(res = R.dimen.common_corner_radius)
+
+                }
             }
         }
     }
@@ -193,7 +317,7 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
                 .toString()
     }
     private val cameraImageFile by lazy { File(fileDir + File.separator + System.currentTimeMillis() + ".png") }
-    private val destinationFile by lazy { File(fileDir + File.separator + user!!.stuNum + ".png") }
+    private val destinationFile by lazy { File(fileDir + File.separator + userService.getStuNum() + ".png") }
 
     private fun getImageFromCamera() {
         doPermissionAction(Manifest.permission.CAMERA) {
@@ -218,13 +342,13 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
         val options = UCrop.Options()
         options.setCompressionFormat(Bitmap.CompressFormat.PNG)
         options.setCompressionQuality(100)
-        options.setLogoColor(ContextCompat.getColor(this, R.color.mine_black_lightly))
+        options.setLogoColor(ContextCompat.getColor(this, R.color.common_level_two_font_color))
         options.setToolbarColor(
                 ContextCompat.getColor(this, R.color.colorPrimaryDark))
         options.setStatusBarColor(
                 ContextCompat.getColor(this, R.color.colorPrimaryDark))
         uCrop.withOptions(options)
-                .withAspectRatio(300f,300f)
+                .withAspectRatio(300f, 300f)
                 .withMaxResultSize(300, 300)
                 .start(this)
     }
@@ -247,7 +371,7 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
 
         try {
             val fileBody = MultipartBody.Part.createFormData("fold", destinationFile.name, destinationFile.getRequestBody())
-            val numBody = RequestBody.create(MediaType.parse("multipart/form-data"), user!!.stuNum!!)
+            val numBody = userService.getStuNum().toRequestBody("multipart/form-data".toMediaTypeOrNull())
             viewModel.uploadAvatar(numBody, fileBody)
         } catch (e: IOException) {
             e.printStackTrace()
@@ -279,6 +403,36 @@ class EditInfoActivity(override val isFragmentActivity: Boolean = false,
                     toast("未知错误，请重试")
                 }
             }
+        }
+    }
+
+    private fun showExit() {
+        val tag = "exit"
+        if (supportFragmentManager.findFragmentByTag(tag) == null) {
+            CommonDialogFragment().apply {
+                initView(
+                        containerRes = R.layout.mine_layout_dialog_edit,
+                        onPositiveClick = { finish() },
+                        onNegativeClick = { dismiss() },
+                        positiveString = "退出"
+                )
+            }.show(supportFragmentManager, tag)
+        }
+    }
+
+    private fun showAgree() {
+        val materialDialog = Dialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.mine_layout_dialog_recyclerview_dynamic, materialDialog.window?.decorView as ViewGroup, false)
+        materialDialog.setContentView(view)
+        materialDialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val featureIntroAdapter = DynamicRVAdapter(viewModel.portraitAgreementList)
+        view.rv_content.adapter = featureIntroAdapter
+        view.rv_content.layoutManager = LinearLayoutManager(this@EditInfoActivity)
+        if (viewModel.portraitAgreementList.isNotEmpty()) view.loader.visibility = View.GONE
+        materialDialog.show()
+        viewModel.getPortraitAgreement {
+            featureIntroAdapter.notifyDataSetChanged()
+            view.loader.visibility = View.GONE
         }
     }
 }

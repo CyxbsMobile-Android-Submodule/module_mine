@@ -6,7 +6,10 @@ import android.view.ViewGroup;
 
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.mredrock.cyxbs.mine.util.widget.RvFooter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,26 +24,61 @@ public abstract class BaseRVAdapter<D> extends RecyclerView.Adapter {
     private static final int FOOTER = 20000;
     private List<D> datas = new ArrayList<>();
 
+    private RvFooter.State state = RvFooter.State.LOADING;
+
     abstract @LayoutRes
     protected int getNormalLayout();
 
-    private View footerView = null;
-
-    public void loadData(List<D> dataList) {
-        datas.addAll(dataList);
-        notifyItemRangeInserted(datas.size(), dataList.size());
+    public void setState(RvFooter.State state) {
+        if (this.state != state) {
+            this.state = state;
+            notifyItemChanged(datas.size());
+        }
     }
 
-    public void clear(){
-        datas.clear();
-        notifyDataSetChanged();
+
+    //设置新数据集，通过旧数据集和DiffUtil来添加动画
+    public void setNewData(List<D> newData) {
+        List<D> oldData = new ArrayList<>(datas);
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return oldData.size() + 1;
+            }
+
+            @Override
+            public int getNewListSize() {
+                return newData.size() + 1;
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                if (oldItemPosition == oldData.size() || newItemPosition == newData.size()) {
+                    return false;
+                } else {
+                    return oldData.get(oldItemPosition).equals(newData.get(newItemPosition));
+                }
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                if (oldItemPosition == oldData.size() || newItemPosition == newData.size()) {
+                    return false;
+                } else {
+                    return oldData.get(oldItemPosition).equals(newData.get(newItemPosition));
+                }
+            }
+        });
+        diffResult.dispatchUpdatesTo(this);
+        datas = newData;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == FOOTER) {
-            return new FooterHolder(footerView);
+            RvFooter rvFooter = new RvFooter(parent.getContext());
+            return new FooterHolder(rvFooter);
         } else {
             return new DataHolder(LayoutInflater.from(parent.getContext()).inflate(getNormalLayout(), parent, false));
         }
@@ -49,6 +87,7 @@ public abstract class BaseRVAdapter<D> extends RecyclerView.Adapter {
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (getItemViewType(position) == FOOTER) {
+            ((RvFooter)holder.itemView).setState(state);
             bindFooterHolder(holder, position);
         } else {
             bindDataHolder(holder, position, datas.get(position));
@@ -57,24 +96,15 @@ public abstract class BaseRVAdapter<D> extends RecyclerView.Adapter {
 
     @Override
     public int getItemCount() {
-        int count = datas.size();
-        if (footerView != null)
-            count++;
-        return count;
+        return datas.size() + 1;
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (position == getItemCount() - 1 && footerView != null) {
+        if (position == getItemCount() - 1) {
             return FOOTER;
         } else {
             return NORMAL;
-        }
-    }
-
-    protected void setFooterView(View footerView) {
-        if (footerView != null) {
-            this.footerView = footerView;
         }
     }
 
@@ -99,4 +129,5 @@ public abstract class BaseRVAdapter<D> extends RecyclerView.Adapter {
     public List<D> getDataList() {
         return datas;
     }
+
 }
